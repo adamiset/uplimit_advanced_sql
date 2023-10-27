@@ -20,7 +20,7 @@ supplier_data as (
 ),
 
 
--- CTE for distance between customers and supplier (with lowest rank having showing the minimum distance)
+-- CTE for distance between customer and supplier (with the lowest rank row having the minimum distance )
 customer_to_supplier_distance as (
     select c.customer_id, c.first_name, c.last_name, c.email, s.supplier_id, s.supplier_name , round(st_distance(c.geo_location, s.geo_location)/1609, 2) as        customer_to_supplier_miles, row_number() over (partition by c.customer_id order by customer_to_supplier_miles) as customer_supplier_distance_rank
     from customer_data_with_address c
