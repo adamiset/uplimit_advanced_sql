@@ -1,4 +1,4 @@
--- CTE for customers data plus their addresses
+-- CTE for customer data plus the address
 with customer_data_with_address as ( 
     select c.customer_id, c.first_name, c.last_name, c.email, ca.customer_city, ca.customer_state, city.geo_location 
     from customers.customer_data c
@@ -10,7 +10,7 @@ with customer_data_with_address as (
 ),
 
  
--- CTE for supplier data plus their addressess
+-- CTE for supplier data plus the address
 supplier_data as (
     select distinct s.supplier_id, s.supplier_name , s.supplier_city, s.supplier_state, city.geo_location
     from suppliers.supplier_info s
@@ -20,7 +20,7 @@ supplier_data as (
 ),
 
 
--- CTE for distance between customers and supplier (with lowest rank having showing the minimun distance)
+-- CTE for distance between customers and supplier (with lowest rank having showing the minimum distance)
 customer_to_supplier_distance as (
     select c.customer_id, c.first_name, c.last_name, c.email, s.supplier_id, s.supplier_name , round(st_distance(c.geo_location, s.geo_location)/1609, 2) as        customer_to_supplier_miles, row_number() over (partition by c.customer_id order by customer_to_supplier_miles) as customer_supplier_distance_rank
     from customer_data_with_address c
@@ -30,5 +30,5 @@ customer_to_supplier_distance as (
 
 -- select * from customer_data_with_address
 
-select * from customer_to_supplier_distance where  customer_supplier_distance_rank  = 1 order by  last_name ,first_name
+ select * from customer_to_supplier_distance where  customer_supplier_distance_rank  = 1 order by  last_name ,first_name
 
