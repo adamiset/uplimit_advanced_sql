@@ -42,7 +42,7 @@ customer_food_preference as (
 customer_three_food_prefrences as (
 select * from customer_food_preference  pivot(min(tag_property) for food_pref_rank in (1,2,3)) as p (customer_id, email, first_name, preference_1, preference_2, preference_3) )
 
-
+-- This should have 1048 rows
 select  c.customer_id, c.email, c.first_name, c.preference_1, c.preference_2, c.preference_3, cr.recipe_name as suggested_recipe
 from customer_three_food_prefrences c
 join customers.customer_data cd
