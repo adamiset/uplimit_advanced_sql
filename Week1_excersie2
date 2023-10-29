@@ -1,3 +1,9 @@
+-- Step 1: Get customer data and address
+-- Step 2: Flatten data in chefs.recipe.tag_list so each element in chefs.recipe.tag_list is split into indiviual row 
+-- Step 3: Gather food preferences for each customer
+-- Step 4: Pivot the customer food preference data to have first three food preference in one row instead of three rows for each customer
+-- Step 5: Join customers.customer_data with food preferences and match recipe data to suggest a recipe which might interest the customer
+
 -- CTE for customer data plus the address
 -- Returns customer data with addresse (meaning customers who can place orders in virtual kitchen)
 with customer_data_plus_address as ( 
@@ -10,39 +16,42 @@ with customer_data_plus_address as (
     and trim(lower(ca.customer_state)) = trim(lower(state_abbr))
 ),
 
+-- CTE to flatten the array elements in chefs.recipe.tag_list so each element in chefs.recipe.tag_list is split into indiviual row 
 recipe_tags_flat as (
  select 
-  replace(trim(lower(flat_tag.value)), '"', '') as recipe_tag,
-        min(recipe_id) as recipe_id
-    from chefs.recipe
-    , table(flatten(tag_list)) as flat_tag
-    group by recipe_tag
+ replace(trim(lower(flat_tag.value)), '"', '') as recipe_tag,
+ min(recipe_id) as recipe_id
+ from chefs.recipe
+ ,table(flatten(tag_list)) as flat_tag
+ group by recipe_tag
 ), 
 
+/* CTE to gather food preferences for each customer */
 customer_food_preference as (
-        select c.customer_id, c.email, c.first_name,   trim(lower(r.tag_property)) as tag_property, row_number() over (partition by s.customer_id order by r.tag_property ) as    food_pref_rank 
-        from customer_data_plus_address c, 
-        customers.customer_survey s, resources.recipe_tags r
-        where 
-        c.customer_id = s.customer_id and
-        s.tag_id = r.tag_id
-        and s.is_active = true
-       -- order by s.customer_id, r.tag_property
+    select c.customer_id, c.email, c.first_name,   trim(lower(r.tag_property)) as tag_property, row_number() over (partition by s.customer_id order by         
+    r.tag_property ) as    food_pref_rank 
+    from customer_data_plus_address c, 
+    customers.customer_survey s, resources.recipe_tags r
+    where 
+    c.customer_id = s.customer_id and
+    s.tag_id = r.tag_id
+    and s.is_active = true
 ),
 
--- CTE for customers with the first three food preferences
+-- CTE to pivot the food preference data from customer_food_preference so that first three food preferences are in three seperate columns for each customer
 customer_three_food_prefrences as (
 select * from customer_food_preference  pivot(min(tag_property) for food_pref_rank in (1,2,3)) as p (customer_id, email, first_name, preference_1, preference_2, preference_3) )
 
 
 select  c.customer_id, c.email, c.first_name, c.preference_1, c.preference_2, c.preference_3, cr.recipe_name as suggested_recipe
-  from customer_three_food_prefrences c
+from customer_three_food_prefrences c
 join customers.customer_data cd
 on c.customer_id = cd.customer_id
 join recipe_tags_flat rf
 on lower(rf.recipe_tag) = lower( c.preference_1)
 join chefs.recipe cr
 on rf.recipe_id = cr.recipe_id
-order by cd.email limit 10
+order by c.email
+
 
 
