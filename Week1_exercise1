@@ -1,5 +1,9 @@
+-- Step 1: Get customer data and the address
+-- Step 2: Get supplier data and the address
+-- Step 3: Join results from step 1 & step 2 to calculate the distance between customer and supplier(Rank the rows according to the calculated distance) 
+
 -- CTE for customer data plus the address
--- Returns customer data with addresse (meaning customers who can place orders in virtual kitchen)
+-- Returns customer data with address (meaning customers who can place orders in virtual kitchen)
 with customer_data_plus_address as ( 
     select c.customer_id, c.first_name, c.last_name, c.email, ca.customer_city, ca.customer_state, city.geo_location 
     from customers.customer_data c
@@ -32,5 +36,6 @@ customer_to_supplier_distance as (
     order by c.customer_id, customer_to_supplier_miles asc
 )
 
+-- This should return 2401 rows
 select * from customer_to_supplier_distance where  customer_supplier_distance_rank  = 1 order by  last_name ,first_name
 -- select * from customer_data_plus_address
