@@ -1,0 +1,48 @@
+-- CTE for customer data plus the address
+-- Returns customer data with addresse (meaning customers who can place orders in virtual kitchen)
+with customer_data_plus_address as ( 
+    select c.customer_id, c.first_name, c.last_name, c.email, ca.customer_city, ca.customer_state, city.geo_location 
+    from customers.customer_data c
+    join customers.customer_address ca 
+    on c.customer_id = ca.customer_id 
+    join resources.us_cities as city
+    on trim(lower(ca.customer_city)) = trim(lower(city.city_name))
+    and trim(lower(ca.customer_state)) = trim(lower(state_abbr))
+),
+
+recipe_tags_flat as (
+ select 
+  replace(trim(lower(flat_tag.value)), '"', '') as recipe_tag,
+        min(recipe_id) as recipe_id
+    from chefs.recipe
+    , table(flatten(tag_list)) as flat_tag
+    group by recipe_tag
+), 
+
+customer_food_preference as (
+        select c.customer_id, c.email, c.first_name,   trim(lower(r.tag_property)) as tag_property, row_number() over (partition by s.customer_id order by r.tag_property ) as    food_pref_rank 
+        from customer_data_plus_address c, 
+        customers.customer_survey s, resources.recipe_tags r
+        where 
+        c.customer_id = s.customer_id and
+        s.tag_id = r.tag_id
+        and s.is_active = true
+       -- order by s.customer_id, r.tag_property
+),
+
+-- CTE for customers with the first three food preferences
+customer_three_food_prefrences as (
+select * from customer_food_preference  pivot(min(tag_property) for food_pref_rank in (1,2,3)) as p (customer_id, email, first_name, preference_1, preference_2, preference_3) )
+
+
+select  c.customer_id, c.email, c.first_name, c.preference_1, c.preference_2, c.preference_3, cr.recipe_name as suggested_recipe
+  from customer_three_food_prefrences c
+join customers.customer_data cd
+on c.customer_id = cd.customer_id
+join recipe_tags_flat rf
+on lower(rf.recipe_tag) = lower( c.preference_1)
+join chefs.recipe cr
+on rf.recipe_id = cr.recipe_id
+order by cd.email limit 10
+
+
