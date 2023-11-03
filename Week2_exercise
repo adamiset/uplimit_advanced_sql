@@ -1,0 +1,64 @@
+-- Create CTE for active customer survyes
+-- Create CTE for Chicago Geo location
+-- Create CTE for Gary Geo location
+-- Create CTE Filter out customers from three states who did not receive parsley
+-- Join the above four CTEs to obtain the desired results
+-- Replaced ltrim(), rtrim() with trim()
+-- Replaced case switching to all lower to make it consistent (except for STATE codes)
+
+-- CTE for active customer survyes
+with active_customer_survey as (
+ select  customer_id, count(*) as food_pref_count
+ from vk_data.customers.customer_survey
+ where is_active = true
+ group by 1
+),
+
+-- CTE for Chicago Geo location
+chicago_geo_loc as (
+select geo_location from vk_data.resources.us_cities where lower(trim(city_name)) = 'chicago' and upper(trim(state_abbr)) = 'IL'
+),
+
+-- CTE for Gary Geo location
+gary_geo_loc as (
+select geo_location from vk_data.resources.us_cities where lower(trim(city_name)) = 'gary' and upper(trim(state_abbr)) = 'IN'
+),
+
+-- CTE for to filter get customers from three states who did not receive parsley
+customers_from_three_states as (
+select 
+c.first_name || ' ' || c.last_name as customer_name
+,ca.customer_city as customer_city
+,ca.customer_state as customer_state
+,s.food_pref_count as food_pref_count
+,us.geo_location   as geo_location
+ from vk_data.customers.customer_address as ca
+ join vk_data.customers.customer_data c on ca.customer_id = c.customer_id
+ left join vk_data.resources.us_cities us 
+ on  lower(trim(ca.customer_state)) = lower(trim(us.state_abbr))
+ and lower(trim(ca.customer_city))  = lower(trim(us.city_name))
+ join active_customer_survey as s
+ on c.customer_id = s.customer_id
+ where 
+ (upper(trim(ca.customer_state)) = 'KY'
+  and (lower(trim(us.city_name)) ilike '%concord%' or lower(trim(us.city_name)) ilike '%georgetown%'  or lower(trim(us.city_name)) ilike '%ashland%')
+ )
+ or
+ (upper(trim(ca.customer_state)) = 'CA' and (lower(trim(us.city_name)) ilike '%oakland%' or lower(trim(us.city_name)) ilike '%pleasant hill%'))
+ or
+ (upper(trim(ca.customer_state)) = 'TX' and (lower(trim(us.city_name))  ilike '%arlington%' or lower(trim(us.city_name)) ilike '%brownsville%'))
+
+)
+
+-- This will return 19 returns (same as the original query result set)
+select
+ cust.customer_name
+,cust.customer_city
+,cust.customer_state
+,cust.food_pref_count
+,(st_distance(cust.geo_location, chicago_geo_loc.geo_location) / 1609)::int as chicago_distance_miles
+,(st_distance(cust.geo_location, gary_geo_loc.geo_location) / 1609)::int as gary_distance_miles
+from customers_from_three_states as cust
+cross join chicago_geo_loc
+cross join gary_geo_loc
+   
