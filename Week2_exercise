@@ -28,10 +28,10 @@ select geo_location from vk_data.resources.us_cities where lower(trim(city_name)
 customers_from_three_states as (
 select 
  c.first_name || ' ' || c.last_name as customer_name
-,ca.customer_city as customer_city
-,ca.customer_state as customer_state
-,s.food_pref_count as food_pref_count
-,us.geo_location   as geo_location
+ ,ca.customer_city as customer_city
+ ,ca.customer_state as customer_state
+ ,s.food_pref_count as food_pref_count
+ ,us.geo_location   as geo_location
  from vk_data.customers.customer_address as ca
  join vk_data.customers.customer_data c on ca.customer_id = c.customer_id
  left join vk_data.resources.us_cities us 
@@ -49,6 +49,7 @@ select
  (upper(trim(ca.customer_state)) = 'TX' and (lower(trim(us.city_name))  ilike '%arlington%' or lower(trim(us.city_name)) ilike '%brownsville%'))
 
 )
+
 
 -- This will return 19 returns (same as the original query result set)
 select
