@@ -3,7 +3,7 @@
 -- Create CTE for Gary Geo location
 -- Create CTE Filter out customers from three states who did not receive parsley
 -- Join the above four CTEs to obtain the desired results
--- Replaced ltrim(), rtrim() with trim()
+-- Replaced ltrim(), rtrim() with just trim()
 -- Replaced case switching to all lower to make it consistent (except for STATE codes)
 
 -- CTE for active customer survyes
@@ -27,7 +27,7 @@ select geo_location from vk_data.resources.us_cities where lower(trim(city_name)
 -- CTE for to filter get customers from three states who did not receive parsley
 customers_from_three_states as (
 select 
-c.first_name || ' ' || c.last_name as customer_name
+ c.first_name || ' ' || c.last_name as customer_name
 ,ca.customer_city as customer_city
 ,ca.customer_state as customer_state
 ,s.food_pref_count as food_pref_count
