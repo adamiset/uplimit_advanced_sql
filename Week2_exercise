@@ -21,7 +21,7 @@ gary_geo_loc as (
 select geo_location from vk_data.resources.us_cities where lower(trim(city_name)) = 'gary' and upper(trim(state_abbr)) = 'IN'
 ),
 
--- CTE for to filter get customers from three states who did not receive parsley
+-- CTE to get customers from three states who did not receive parsley
 customers_from_three_states as (
 select 
  c.first_name || ' ' || c.last_name as customer_name
