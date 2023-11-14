@@ -1,0 +1,57 @@
+-- Advanced SQL Week 3 excersice
+
+
+-- alter session set use_cached_result = false;
+/* Exploring event data */
+-- select distinct event_details from vk_data.events.website_activity;
+
+with unique_events as (
+ select 
+ event_id
+,session_id
+,event_timestamp
+,trim(parse_json(event_details):recipe_id::string) as recipe_id 
+,trim(parse_json(event_details):event::string) as event_type 
+ from  vk_data.events.website_activity
+),
+
+avg_session_duration_secs as (
+ select session_id
+ ,datediff(seconds, min(event_timestamp), max(event_timestamp)) as session_duration_seconds
+ ,session_duration_seconds/count(session_id) average_session_duration 
+ from unique_events 
+ group by session_id
+),
+
+recipe_view_count as (
+ select recipe_id 
+ ,count(recipe_id) as view_count 
+ from unique_events
+ where event_type = 'view_recipe' 
+ group by recipe_id
+)
+
+
+
+
+--  total unique session = 178  
+/* select count(distinct session_id) as total_unique_sessions from vk_data.events.website_activity; */
+
+-- The average number of searches completed before displaying a recipe 
+/* select session_id, average_session_duration  from avg_session_duration_secs; */
+
+-- The average number of searches completed before displaying a recipe is 1.38 */
+/* select (sum(case when event_type = 'search' then 1 else 0 end))/(sum(case when event_type = 'view_recipe' then 1 else 0 end))  as searchs_per_recipe_view 
+from unique_events as events; */
+
+/* Recipe_id = 44dcd777-5b10-41e2-90df-4dca4b696971 has the most views (34 views)*/
+select rv.recipe_id ,rv.view_count from recipe_view_count as rv
+where rv.view_count = 
+(select max(rv1.view_count)
+ from recipe_view_count rv1
+) 
+
+
+/* Using distinct is degrading the performance */
+/* removing trim while using parse_json() contributed to improved performance */
+Note: I am not able consistently pin point the query performance in the query profile even though had turned off the cache
